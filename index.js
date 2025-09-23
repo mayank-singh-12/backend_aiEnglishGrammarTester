@@ -38,8 +38,10 @@ app.use((req, res, next) => {
   next();
 });
 
+const googleApiKey = process.env.GOOGLEAPI;
+
 const { models } = new GoogleGenAI({
-  apiKey: "AIzaSyB5HUKGhEwpdY-EfZo4teoLpMnoZMvRAYo",
+  apiKey: googleApiKey,
 });
 
 const prompt = `
