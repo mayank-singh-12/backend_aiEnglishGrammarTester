@@ -26,7 +26,7 @@ app.use(
 
 app.use(
   cors({
-    origin: "*",
+    origin: "https://frontend-ai-english-grammar-tester.vercel.app",
     credentials: true,
     optionsSuccessStatus: 200,
   })
