@@ -4,6 +4,7 @@ import session from "express-session";
 import cors from "cors";
 import fs from "fs";
 import path from "path";
+import { fileURLToPath } from "url";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -64,8 +65,11 @@ function initializeChat(req) {
 
 app.get("/", async (req, res) => {
   try {
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
     const manualPath = path.join(__dirname, "aiManual.txt");
-    const manual = fs.readFileSync(manualPath);
+    console.log(manualPath);
+    const manual = fs.readFileSync(manualPath, "utf-8");
     initializeChat(req);
     updateChat(req, "admin", manual);
     const prompt = JSON.stringify(req.session.messages);
