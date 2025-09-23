@@ -76,6 +76,7 @@ app.get("/", async (req, res) => {
     req.session.save();
     res.status(200).json({ aiResData });
   } catch (error) {
+    console.log(error)
     res.status(500).json({ error });
   }
 });
