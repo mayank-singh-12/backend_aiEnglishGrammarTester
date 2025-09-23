@@ -3,6 +3,7 @@ import express from "express";
 import session from "express-session";
 import cors from "cors";
 import fs from "fs";
+import path from "path";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -15,7 +16,7 @@ app.use(
     resave: false,
     saveUninitialized: true,
     cookie: {
-      secure: true, // keep false for localhost HTTP; true for HTTPS in prod
+      secure: false, // keep false for localhost HTTP; true for HTTPS in prod
       sameSite: "lax", // or 'none' if using secure: true and HTTPS
       maxAge: 24 * 60 * 60 * 1000, // 1 day expiration
     },
@@ -63,7 +64,8 @@ function initializeChat(req) {
 
 app.get("/", async (req, res) => {
   try {
-    const manual = fs.readFileSync("./aiManual.txt", "utf-8");
+    const manualPath = path.join(__dirname, "aiManual.txt");
+    const manual = fs.readFileSync(manualPath);
     initializeChat(req);
     updateChat(req, "admin", manual);
     const prompt = JSON.stringify(req.session.messages);
@@ -76,7 +78,7 @@ app.get("/", async (req, res) => {
     req.session.save();
     res.status(200).json({ aiResData });
   } catch (error) {
-    console.log(error)
+    console.log(error);
     res.status(500).json({ error });
   }
 });
