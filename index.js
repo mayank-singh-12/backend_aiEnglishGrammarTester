@@ -15,7 +15,7 @@ app.use(
     resave: false,
     saveUninitialized: true,
     cookie: {
-      secure: false, // keep false for localhost HTTP; true for HTTPS in prod
+      secure: true, // keep false for localhost HTTP; true for HTTPS in prod
       sameSite: "lax", // or 'none' if using secure: true and HTTPS
       maxAge: 24 * 60 * 60 * 1000, // 1 day expiration
     },
