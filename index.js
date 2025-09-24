@@ -18,11 +18,16 @@ app.use(
     saveUninitialized: true,
     cookie: {
       secure: true, // keep false for localhost HTTP; true for HTTPS in prod
-      sameSite: "lax", // or 'none' if using secure: true and HTTPS
+      sameSite: "none", //'lax' or 'none' if using secure: true and HTTPS
       maxAge: 24 * 60 * 60 * 1000, // 1 day expiration
     },
   })
 );
+
+// const delpoyedB = "https://frontend-ai-english-grammar-tester.vercel.app";
+// const localB = "http://localhost:3000";
+
+// const localF = "http://localhost:5173";
 
 app.use(
   cors({
@@ -89,6 +94,7 @@ app.get("/", async (req, res) => {
 
 app.post("/interact", async (req, res) => {
   try {
+    console.log(req.session.messages)
     const data = req.body;
     updateChat(req, "user", data);
     const prompt = JSON.stringify(req.session.messages);
