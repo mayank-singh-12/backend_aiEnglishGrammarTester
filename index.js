@@ -24,6 +24,13 @@ app.use(
   })
 );
 
+// COOKIE FOR DEPLOYED
+// cookie: {
+//       secure: true, // keep false for localhost HTTP; true for HTTPS in prod
+//       sameSite: "none", //'lax' or 'none' if using secure: true and HTTPS
+//       maxAge: 24 * 60 * 60 * 1000, // 1 day expiration
+//     }
+
 // const delpoyedB = "https://frontend-ai-english-grammar-tester.vercel.app";
 // const localB = "http://localhost:3000";
 
@@ -31,7 +38,7 @@ app.use(
 
 app.use(
   cors({
-    origin: "https://frontend-ai-english-grammar-tester.vercel.app",
+    origin: "http://localhost:5173",
     credentials: true,
     optionsSuccessStatus: 200,
   })
@@ -94,7 +101,7 @@ app.get("/", async (req, res) => {
 
 app.post("/interact", async (req, res) => {
   try {
-    console.log(req.session.messages)
+    console.log(req.session.messages);
     const data = req.body;
     updateChat(req, "user", data);
     const prompt = JSON.stringify(req.session.messages);
