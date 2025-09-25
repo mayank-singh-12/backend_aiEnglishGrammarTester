@@ -20,6 +20,7 @@ app.use(
       secure: true, // keep false for localhost HTTP; true for HTTPS in prod
       sameSite: "none", //'lax' or 'none' if using secure: true and HTTPS
       maxAge: 24 * 60 * 60 * 1000, // 1 day expiration
+      httpOnly: true,
     },
   })
 );
@@ -38,7 +39,7 @@ app.use(
 
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: "https://frontend-ai-english-grammar-tester.vercel.app",
     credentials: true,
     optionsSuccessStatus: 200,
   })
