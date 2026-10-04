@@ -34,6 +34,11 @@ async function aiCall(prompt) {
   const response = await models.generateContent({
     model: "gemini-3.5-flash",
     contents: prompt,
+    config: {
+      thinkingConfig: {
+        thinkingBudget: 0, // Disable thinking — eliminates thoughtSignature warning
+      },
+    },
   });
   console.log(response.text);
   return response.text;
