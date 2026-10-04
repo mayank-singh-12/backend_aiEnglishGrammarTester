@@ -1,6 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
 import express from "express";
-import session from "express-session";
 import cors from "cors";
 import fs from "fs";
 import path from "path";
@@ -11,47 +10,12 @@ dotenv.config();
 
 const app = express();
 app.use(express.json());
-app.use(
-  session({
-    secret: "24f1000209",
-    resave: false,
-    saveUninitialized: true,
-    cookie: {
-      secure: true, // keep false for localhost HTTP; true for HTTPS in prod
-      sameSite: "none", //'lax' or 'none' if using secure: true and HTTPS
-      maxAge: 24 * 60 * 60 * 1000, // 1 day expiration
-      httpOnly: true,
-    },
-  })
-);
-
-// COOKIE FOR DEPLOYED
-// cookie: {
-//       secure: true, // keep false for localhost HTTP; true for HTTPS in prod
-//       sameSite: "none", //'lax' or 'none' if using secure: true and HTTPS
-//       maxAge: 24 * 60 * 60 * 1000, // 1 day expiration
-//     }
-
-// const delpoyedB = "https://frontend-ai-english-grammar-tester.vercel.app";
-// const localB = "http://localhost:3000";
-
-// const localF = "http://localhost:5173";
 
 app.use(
   cors({
-    origin: "https://frontend-ai-english-grammar-tester.vercel.app",
-    credentials: true,
-    optionsSuccessStatus: 200,
+    origin: "*",
   })
 );
-
-app.use((req, res, next) => {
-  if (!req.session.chatKey) {
-    req.session.chatKey = generateUniqueSessionId();
-    req.session.messages = [];
-  }
-  next();
-});
 
 const googleApiKey = process.env.GOOGLEAPI;
 
@@ -59,67 +23,65 @@ const { models } = new GoogleGenAI({
   apiKey: googleApiKey,
 });
 
+// Read manual once at startup so every prompt includes it
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const manual = fs.readFileSync(path.join(__dirname, "aiManual.txt"), "utf-8");
+
 async function aiCall(prompt) {
   const response = await models.generateContent({
-    model: "gemini-2.5-flash",
+    model: "gemini-3.5-flash",
     contents: prompt,
+    config: {
+      thinkingConfig: {
+        thinkingBudget: 0, // Disable thinking — eliminates thoughtSignature warning
+      },
+    },
   });
   console.log(response.text);
   return response.text;
 }
 
-function updateChat(req, author, content) {
-  req.session.messages.push({ author, content });
-}
-
-function initializeChat(req) {
-  req.session.messages = [];
-}
-
+// GET / — send manual so AI returns greeting JSON
 app.get("/", async (req, res) => {
   try {
-    const __filename = fileURLToPath(import.meta.url);
-    const __dirname = path.dirname(__filename);
-    const manualPath = path.join(__dirname, "aiManual.txt");
-    console.log(manualPath);
-    const manual = fs.readFileSync(manualPath, "utf-8");
-    initializeChat(req);
-    updateChat(req, "admin", manual);
-    const prompt = JSON.stringify(req.session.messages);
+    const prompt = manual;
     const aiRes = await aiCall(prompt);
-
-    // updating the chat
     const aiResData = JSON.parse(aiRes);
-    updateChat(req, "assistant", aiResData);
-    console.log(req.session.messages);
-    req.session.save();
-    res.status(200).json({ aiResData });
+    return res.status(200).json({ aiResData });
   } catch (error) {
     console.log(error);
-    res.status(500).json({ error });
+    return res.status(500).json({ error });
   }
 });
 
 app.post("/interact", async (req, res) => {
   try {
-    console.log(req.session.messages);
-    const data = req.body;
-    updateChat(req, "user", data);
-    const prompt = JSON.stringify(req.session.messages);
+    const { history = [], message } = req.body;
+
+    const historyText = history
+      .map((entry) => `${entry.role.toUpperCase()}: ${JSON.stringify(entry.content)}`)
+      .join("\n");
+
+    const prompt = historyText
+      ? `${manual}\n\n${historyText}\nUSER: ${JSON.stringify(message)}`
+      : `${manual}\n\nUSER: ${JSON.stringify(message)}`;
+
+    console.log(prompt)
+
     const aiRes = await aiCall(prompt);
     const aiResData = JSON.parse(aiRes);
     console.log(aiResData);
-    updateChat(req, "assistant", aiResData);
-    res.status(200).json({ aiResData });
+    return res.status(200).json({ aiResData });
   } catch (error) {
-    res.status(500).json({ error });
     console.log(error);
+    return res.status(500).json({ error });
   }
 });
 
-function generateUniqueSessionId() {
-  return Math.random().toString(36).substring(2) + Date.now().toString(36);
-}
+// function generateUniqueSessionId() {
+//   return Math.random().toString(36).substring(2) + Date.now().toString(36);
+// }
 
 const port = process.env.PORT;
 app.listen(port, () => {
