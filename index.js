@@ -13,7 +13,9 @@ app.use(express.json());
 
 app.use(
   cors({
-    origin: "*"
+    origin: "*",
+    methods: ["GET", "POST", "OPTIONS"],
+    allowedHeaders: ["Content-Type"],
   })
 );
 
@@ -23,57 +25,54 @@ const { models } = new GoogleGenAI({
   apiKey: googleApiKey,
 });
 
+// Read manual once at startup so every prompt includes it
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const manual = fs.readFileSync(path.join(__dirname, "aiManual.txt"), "utf-8");
+
 async function aiCall(prompt) {
   const response = await models.generateContent({
-    model: "gemini-2.5-flash",
+    model: "gemini-3.5-flash",
     contents: prompt,
   });
-  // console.log(response.text);
+  console.log(response.text);
   return response.text;
 }
 
-function updateChat(req, author, content) {
-  req.session.messages.push({ author, content });
-}
-
-function initializeChat(req) {
-  req.session.messages = [];
-}
-
+// GET / — send manual so AI returns greeting JSON
 app.get("/", async (req, res) => {
   try {
-    const __filename = fileURLToPath(import.meta.url);
-    const __dirname = path.dirname(__filename);
-    // Manual 
-    const manualPath = path.join(__dirname, "aiManual.txt");
-    const manual = fs.readFileSync(manualPath, "utf-8");
-    
-    const prompt = JSON.stringify(manual);
-
+    const prompt = manual;
     const aiRes = await aiCall(prompt);
     const aiResData = JSON.parse(aiRes);
-    res.status(200).json({ aiResData });
+    return res.status(200).json({ aiResData });
   } catch (error) {
     console.log(error);
-    res.status(500).json({ error });
+    return res.status(500).json({ error });
   }
 });
 
 app.post("/interact", async (req, res) => {
   try {
-    // console.log(req.session.messages);
-    // const data = req.body;
-    // updateChat(req, "user", data);
+    const { history = [], message } = req.body;
 
-    const prompt = JSON.stringify(req.body);
+    const historyText = history
+      .map((entry) => `${entry.role.toUpperCase()}: ${JSON.stringify(entry.content)}`)
+      .join("\n");
+
+    const prompt = historyText
+      ? `${manual}\n\n${historyText}\nUSER: ${JSON.stringify(message)}`
+      : `${manual}\n\nUSER: ${JSON.stringify(message)}`;
+
+    console.log(prompt)
+
     const aiRes = await aiCall(prompt);
     const aiResData = JSON.parse(aiRes);
     console.log(aiResData);
-    // updateChat(req, "assistant", aiResData);
-    res.status(200).json({ aiResData });
+    return res.status(200).json({ aiResData });
   } catch (error) {
-    res.status(500).json({ error });
     console.log(error);
+    return res.status(500).json({ error });
   }
 });
 
